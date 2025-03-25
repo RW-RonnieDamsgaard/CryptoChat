@@ -15,7 +15,15 @@ namespace CryptoChat
             builder.Services.AddRazorPages();
             builder.Services.AddServerSideBlazor();
             builder.Services.AddSingleton<WeatherForecastService>();
-            builder.Services.AddScoped<CryptoService>(_ => new CryptoService("mysecretkey123")); // Replace with a secure key
+
+            // Read the key from the configuration file
+            var cryptoKey = builder.Configuration["CryptoSettings:Key"];
+            if (string.IsNullOrEmpty(cryptoKey))
+            {
+                throw new InvalidOperationException("CryptoSettings:Key configuration is not set.");
+            }
+            builder.Services.AddScoped<CryptoService>(_ => new CryptoService(cryptoKey));
+
             builder.Services.AddSignalR();
 
             var app = builder.Build();
@@ -25,7 +33,6 @@ namespace CryptoChat
             {
                 app.UseExceptionHandler("/Error");
             }
-
 
             app.UseStaticFiles();
 
