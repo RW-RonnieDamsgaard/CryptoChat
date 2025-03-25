@@ -1,0 +1,66 @@
+﻿@page "/chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@inject CryptoService CryptoService
+
+<h3>Secure Chat</h3>
+
+<div>
+    <input @bind="userName" placeholder="Your name" />
+    <input @bind="message" placeholder="Type a message" />
+    <button @onclick="Send">Send</button>
+</div>
+
+<div>
+    @foreach (var msg in messages)
+    {
+        <p><strong>@msg.User (@msg.Timestamp):</strong> @msg.Content</p>
+    }
+</div>
+
+@code {
+    private string userName = "";
+    private string message = "";
+    private List<Message> messages = new();
+    private HubConnection hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        hubConnection.On<string, string, string>("ReceiveMessage", async (user, encrypted, hmac) =>
+        {
+            try
+            {
+                string decrypted = CryptoService.Decrypt(encrypted, hmac);
+                await InvokeAsync(() =>
+                {
+                    messages.Add(new Message { User = user, Content = decrypted, Timestamp = DateTime.Now });
+                    StateHasChanged();
+                });
+            }
+            catch (Exception ex)
+            {
+                await InvokeAsync(() =>
+                {
+                    messages.Add(new Message { User = "System", Content = $"Error: {ex.Message}", Timestamp = DateTime.Now });
+                    StateHasChanged();
+                });
+            }
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Send()
+    {
+        if (!string.IsNullOrEmpty(message))
+        {
+            var (encrypted, hmac) = CryptoService.Encrypt(message);
+            await hubConnection.SendAsync("SendMessage", userName, encrypted, hmac);
+            message = "";
+        }
+    }
+}
