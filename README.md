@@ -3,7 +3,7 @@ A simple Blazor + SignalR chat application with end-to-end encryption.
 
 ## How to Run
 1. Clone the repository: `git clone <repo-url>`
-2. Navigate to the project folder: `cd CryptoChat`
+2. Navigate to the project folder: `cd CryptoChat/CryptoChat`
 3. Restore dependencies: `dotnet restore`
 4. Run the app: `dotnet run`
 5. Open two browser windows to `https://localhost:5001/chat` and chat securely!
