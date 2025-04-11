@@ -1,7 +1,7 @@
 ﻿@page "/chat"
+@using System.Security.Cryptography
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager Navigation
-@inject CryptoService CryptoService
 
 <h3>Secure Chat</h3>
 
@@ -19,13 +19,18 @@
 </div>
 
 @code {
-    private string userName = "";
+    private string userName = "User1"; // In reality, this could be dynamic
     private string message = "";
     private List<Message> messages = new();
     private HubConnection hubConnection;
 
+    private CryptoService cryptoService;
+
     protected override async Task OnInitializedAsync()
     {
+        // Initialize CryptoService with a pre-shared key
+        cryptoService = new CryptoService("mysecretkey123");
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
             .Build();
@@ -34,7 +39,7 @@
         {
             try
             {
-                string decrypted = CryptoService.Decrypt(encrypted, hmac);
+                string decrypted = cryptoService.Decrypt(encrypted, hmac);
                 await InvokeAsync(() =>
                 {
                     messages.Add(new Message { User = user, Content = decrypted, Timestamp = DateTime.Now });
@@ -58,7 +63,7 @@
     {
         if (!string.IsNullOrEmpty(message))
         {
-            var (encrypted, hmac) = CryptoService.Encrypt(message);
+            var (encrypted, hmac) = cryptoService.Encrypt(message);
             await hubConnection.SendAsync("SendMessage", userName, encrypted, hmac);
             message = "";
         }
